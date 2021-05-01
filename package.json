@@ -1,14 +1,17 @@
 {
-  "name": "minimist",
-  "version": "1.2.5",
+  "name": "@p-mcgowan/minimist",
+  "version": "2.0.0",
   "description": "parse argument options",
   "main": "index.js",
   "devDependencies": {
+    "@types/node": "^15.0.1",
     "covert": "^1.0.0",
-    "tap": "~0.4.0",
-    "tape": "^3.5.0"
+    "tap": "^15.0.6",
+    "tape": "^5.2.2",
+    "typescript": "^4.2.4"
   },
   "scripts": {
+    "build": "tsc -p .",
     "test": "tap test/*.js",
     "coverage": "covert test/*.js"
   },
