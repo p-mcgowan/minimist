@@ -1,0 +1,8 @@
+{
+  "bracketSpacing": true,
+  "endOfLine": "auto",
+  "semi": true,
+  "printWidth": 150,
+  "singleQuote": true,
+  "quoteProps": "consistent"
+}

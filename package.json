@@ -1,38 +1,28 @@
 {
   "name": "@p-mcgowan/minimist",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "parse argument options",
   "main": "index.js",
   "devDependencies": {
     "@types/node": "^15.0.1",
     "covert": "^1.0.0",
+    "prettier": "^2.2.1",
     "tap": "^15.0.6",
     "tape": "^5.2.2",
     "typescript": "^4.2.4"
   },
   "scripts": {
     "build": "tsc -p .",
+    "format": "prettier --write index.ts test/**/*.js",
     "test": "tap test/*.js",
-    "coverage": "covert test/*.js"
-  },
-  "testling": {
-    "files": "test/*.js",
-    "browsers": [
-      "ie/6..latest",
-      "ff/5",
-      "firefox/latest",
-      "chrome/10",
-      "chrome/latest",
-      "safari/5.1",
-      "safari/latest",
-      "opera/12"
-    ]
+    "coverage": "covert test/*.js",
+    "prepublish": "npm run build && npm run format && npm test"
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/substack/minimist.git"
+    "url": "git://github.com/p-mcgowan/minimist.git"
   },
-  "homepage": "https://github.com/substack/minimist",
+  "homepage": "https://github.com/p-mcgowan/minimist",
   "keywords": [
     "argv",
     "getopt",
@@ -40,9 +30,12 @@
     "optimist"
   ],
   "author": {
-    "name": "James Halliday",
-    "email": "mail@substack.net",
-    "url": "http://substack.net"
+    "name": "Pat McGowan",
+    "email": "enjoi33+npm@gmail.com"
   },
+  "files": [
+    "readme.md",
+    "dist"
+  ],
   "license": "MIT"
 }
