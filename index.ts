@@ -9,7 +9,80 @@
 //                 Piotr Błażejewicz <https://github.com/peterblazejewicz>
 // Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
 
-export interface Opts {
+export interface Context<T = Record<string, any>> {
+  /**
+   * option without leading slash(es), or null when positional args
+   */
+  key: string;
+  /**
+   * value being assinged, or true
+   */
+  val: any;
+  /**
+   * internal flag object
+   */
+  flags: Flags<T>;
+  /**
+   * alias mapping
+   */
+  aliases: Record<string, string | string[]>;
+  /**
+   * current argv
+   */
+  argv: ParsedArgs<T>;
+  /**
+   * defaults mapping
+   */
+  defaults: Record<string, any>;
+  /**
+   * original options
+   */
+  opts: Opts<T>;
+}
+
+export interface Flags<T = Record<string, any>> {
+  bools?: Record<string, boolean>;
+  strings?: Record<string, boolean>;
+  unknownFn?: UnknownFn<T>;
+  allBools?: boolean;
+}
+
+/**
+ * Called on option unknown
+ *
+ * context contains the internal parameters for manually overriding or customizing
+ * For example, if you want to support additional options for positional args:
+ *
+ * minimist('test.com --option https'.split(' '))
+ *
+ * by pupropsely not definiting what --options does, you can assign a custom argument to argv
+ *
+ * unknown(opt: string, { argv, key, value }) {
+ *     if (/^-/.test(opt)) {
+ *       console.error(`unknown option '${opt}'\n${usage}`);
+ *       return false;
+ *     }
+ *
+ *     if (opt === '--options' || opt === '-o') {
+ *       const lastPositional = argv['_'].slice(-1).pop();
+ *
+ *       argv[lastPositional] = {
+ *         ...(argv[lastPositional] || {}),
+ *         options: {
+ *           ...(argv[lastPositional]?.options || {}),
+ *           [value]: true
+ *         }
+ *       };
+ *
+ *       return true;
+ *     }
+ *
+ *     return false;
+ *   }
+ */
+export type UnknownFn<T = Record<string, any>> = (arg: string, context: Context<T>) => boolean;
+
+export interface Opts<T = Record<string, any>> {
   /**
    * A string or array of strings argument names to always treat as strings
    */
@@ -40,7 +113,7 @@ export interface Opts {
    * A function which is invoked with a command line parameter not defined in the opts
    * configuration object. If the function returns false, the unknown option is not added to argv
    */
-  'unknown'?: (arg: string, extra: {}) => boolean;
+  'unknown'?: UnknownFn<T>;
 
   /**
    * When true, populate argv._ with everything before the -- and argv['--'] with everything after the --.
@@ -78,7 +151,7 @@ const isNumber = (x: any): boolean => {
 export const minimist = <T = Record<string, any>>(args: string[], opts?: Opts): ParsedArgs<T> => {
   opts = opts || {};
 
-  const flags: any = { bools: {}, strings: {}, unknownFn: null };
+  const flags: Flags = { bools: {}, strings: {}, unknownFn: null };
   const aliases: any = {};
   const argv: any = { _: [] };
   const defaults = opts.default || {};
@@ -119,19 +192,12 @@ export const minimist = <T = Record<string, any>>(args: string[], opts?: Opts): 
       }
     });
 
-  const argDefined = (key: any, arg: any) =>
-    (flags.allBools && /^--[^=]+$/.test(arg)) || flags.strings[key] || flags.bools[key] || aliases[key];
+  const argDefined = (key: any, arg: any) => (flags.allBools && /^--[^=]+$/.test(arg)) || flags.strings[key] || flags.bools[key] || aliases[key];
 
   const aliasIsBoolean = (key: any) => aliases[key].some((x: any) => flags.bools[x]);
 
   const setKey = (obj: any, key: string, value: any) => {
-    if (
-      key === '__proto__' ||
-      obj === Object.prototype ||
-      obj === Number.prototype ||
-      obj === String.prototype ||
-      obj === Array.prototype
-    ) {
+    if (key === '__proto__' || obj === Object.prototype || obj === Number.prototype || obj === String.prototype || obj === Array.prototype) {
       console.trace({ obj, key, value, to: typeof obj, tk: typeof key, tv: typeof value });
       throw new Error('invalid key name');
     }
@@ -147,7 +213,7 @@ export const minimist = <T = Record<string, any>>(args: string[], opts?: Opts): 
 
   const setArg = (key: any, val: any, arg?: any) => {
     if (arg && flags.unknownFn && !argDefined(key, arg)) {
-      if (flags.unknownFn(arg, { key, val, min: this }) === false) return;
+      if (flags.unknownFn(arg, { key, val, flags, aliases, argv, defaults, opts }) === false) return;
     }
 
     const value = !flags.strings[key] && isNumber(val) ? Number(val) : val;
@@ -185,16 +251,14 @@ export const minimist = <T = Record<string, any>>(args: string[], opts?: Opts): 
         value = value !== 'false';
       }
       setArg(key, value, arg);
-    } else if (/^--.+/.test(arg)) {
+
+      continue;
+    }
+
+    if (/^--.+/.test(arg)) {
       const key = arg.match(/^--(.+)/)[1];
       const next = args[i + 1];
-      if (
-        next !== undefined &&
-        !/^-/.test(next) &&
-        !flags.bools[key] &&
-        !flags.allBools &&
-        (aliases[key] ? !aliasIsBoolean(key) : true)
-      ) {
+      if (next !== undefined && !/^-/.test(next) && !flags.bools[key] && !flags.allBools && (aliases[key] ? !aliasIsBoolean(key) : true)) {
         setArg(key, next, arg);
         i++;
       } else if (/^(true|false)$/.test(next)) {
@@ -203,7 +267,11 @@ export const minimist = <T = Record<string, any>>(args: string[], opts?: Opts): 
       } else {
         setArg(key, flags.strings[key] ? '' : true, arg);
       }
-    } else if (/^-[^-]+/.test(arg)) {
+
+      continue;
+    }
+
+    if (/^-[^-]+/.test(arg)) {
       const letters = arg.slice(1, -1).split('');
 
       let broken = false;
@@ -238,12 +306,7 @@ export const minimist = <T = Record<string, any>>(args: string[], opts?: Opts): 
 
       const key = arg.slice(-1)[0];
       if (!broken && key !== '-') {
-        if (
-          args[i + 1] &&
-          !/^(-|--)[^-]/.test(args[i + 1]) &&
-          !flags.bools[key] &&
-          (aliases[key] ? !aliasIsBoolean(key) : true)
-        ) {
+        if (args[i + 1] && !/^(-|--)[^-]/.test(args[i + 1]) && !flags.bools[key] && (aliases[key] ? !aliasIsBoolean(key) : true)) {
           setArg(key, args[i + 1], arg);
           i++;
         } else if (args[i + 1] && /^(true|false)$/.test(args[i + 1])) {
@@ -253,14 +316,16 @@ export const minimist = <T = Record<string, any>>(args: string[], opts?: Opts): 
           setArg(key, flags.strings[key] ? '' : true, arg);
         }
       }
-    } else {
-      if (!flags.unknownFn || flags.unknownFn(arg) !== false) {
-        argv._.push(flags.strings['_'] || !isNumber(arg) ? arg : Number(arg));
-      }
-      if (opts.stopEarly) {
-        argv._.push.apply(argv._, args.slice(i + 1));
-        break;
-      }
+
+      continue;
+    }
+
+    if (!flags.unknownFn || flags.unknownFn(arg, { key: null, val: arg, flags, aliases, argv, defaults, opts }) !== false) {
+      argv._.push(flags.strings['_'] || !isNumber(arg) ? arg : Number(arg));
+    }
+    if (opts.stopEarly) {
+      argv._.push.apply(argv._, args.slice(i + 1));
+      break;
     }
   }
 

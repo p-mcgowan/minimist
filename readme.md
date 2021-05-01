@@ -1,4 +1,6 @@
-# minimist
+# minimist revived
+
+Rebuild of [substack/minimist](https://github.com/substack/minimist) in typescript
 
 parse argument options
 
@@ -8,7 +10,13 @@ fanciful decoration.
 # example
 
 ``` js
-var argv = require('minimist')(process.argv.slice(2));
+const argv = require('@p-mcgowan/minimist').minimist(process.argv.slice(2));
+console.log(argv);
+```
+
+```typescript
+import { minimist } from '@p-mcgowan/minimist';
+const argv = minimist(process.argv.slice(2));
 console.log(argv);
 ```
 
@@ -35,6 +43,13 @@ Previous versions had a prototype pollution bug that could cause privilege
 escalation in some circumstances when handling untrusted user input.
 
 Please use version 1.2.3 or later: https://snyk.io/vuln/SNYK-JS-MINIMIST-559764
+
+*note* the nested argument feature was removed - previously:
+```typescript
+const argv = minimist('-foo.bar.baz=10'.split(' '));
+// would result in argv = { foo: { bar: { baz: 10 } } }
+// now returns { 'foo.bar.baz': 10 }
+```
 
 # methods
 
