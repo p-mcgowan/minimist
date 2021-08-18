@@ -34,8 +34,7 @@
     "email": "enjoi33+npm@gmail.com"
   },
   "files": [
-    "readme.md",
-    "dist"
+    "readme.md"
   ],
   "license": "MIT"
 }
