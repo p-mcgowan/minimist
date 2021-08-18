@@ -16,7 +16,7 @@
     "format": "prettier --write index.ts test/**/*.js",
     "test": "tap test/*.js",
     "coverage": "covert test/*.js",
-    "prepublish": "npm run build && npm run format && npm test"
+    "prepublish": "npm run build && npm run format && npm test -- --no-check-coverage"
   },
   "repository": {
     "type": "git",
